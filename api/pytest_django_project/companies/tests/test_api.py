@@ -17,12 +17,14 @@ def test_zero_companies_should_return_empty_list(client) -> None:
     assert json.loads(response.content) == []
 
 
-def test_one_company_exists_should_succeed(client) -> None:
-    test_company = Company.objects.create(name="Amazon")
+
+
+
+def test_one_company_exists_should_succeed(client, amazon) -> None:
     response = client.get(companies_url)
     response_content = json.loads(response.content)[0]
     assert response.status_code == 200
-    assert response_content.get("name") == "Amazon"
+    assert response_content.get("name") == amazon.name
     assert response_content.get("status") == "Hiring"
     assert response_content.get("application_link") == ""
     assert response_content.get("notes") == ""
@@ -134,3 +136,23 @@ def _function_that_logs_something() -> None:
         raise ValueError("CoronaVirus Exception")
     except ValueError as e:
         logger.warning(f"I am logging {str(e)}")
+
+
+# ------------ learn about fixtures and tests ------------
+
+@pytest.mark.parametrize(
+    "companies",
+    [["Twitch", "TikTok", "Test Company INC"], ["Facebook", "Instagram"]],
+    ids = ["3T companies","Meta companies"],
+    indirect=True
+)
+def test_multiple_companies_exists_should_succeed(client, companies) -> None:
+    company_names = set(map(lambda x: x.name, companies))
+    response_companies = client.get(companies_url).json()
+
+    assert len(company_names) == len(response_companies)
+
+    response_company_names = set(
+        map(lambda company: company.get("name"), response_companies)
+    )
+    assert company_names == response_company_names
